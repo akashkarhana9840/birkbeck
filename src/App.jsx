@@ -678,6 +678,45 @@ function CampusSection() {
 }
 
 function ContactSection() {
+  const navigate = useNavigate();
+  const [submitState, setSubmitState] = useState({
+    type: "idle",
+    message: "",
+  });
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const pairs = [];
+    for (const [key, value] of formData.entries()) {
+      pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+    }
+
+    setSubmitState({ type: "loading", message: "Submitting your enquiry..." });
+
+    try {
+      await fetch(GAS_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body: pairs.join("&"),
+      });
+
+      form.reset();
+      setSubmitState({ type: "idle", message: "" });
+      navigate("/thank-you");
+    } catch (error) {
+      console.error("Form submission failed:", error);
+      setSubmitState({
+        type: "error",
+        message: "Failed to submit the form. Please check your internet connection and try again.",
+      });
+    }
+  };
+
   return (
     <section className="contact-section" id="contact">
       <div className="wrap contact-layout">
@@ -687,7 +726,7 @@ function ContactSection() {
 
           <form
             className="lead-form"
-            onSubmit={(event) => event.preventDefault()}
+            onSubmit={handleSubmit}
           >
             <div className="field-row">
               <label>
@@ -753,9 +792,14 @@ function ContactSection() {
               </label>
             </div>
 
-            <button type="submit" className="btn btn-primary form-submit">
-              Submit enquiry
+            <button type="submit" className="btn btn-primary form-submit" disabled={submitState.type === "loading"}>
+              {submitState.type === "loading" ? "Submitting..." : "Submit enquiry"}
             </button>
+            {submitState.type === "error" && (
+              <p className="form-status error" role="status" aria-live="polite" style={{ marginTop: "1rem" }}>
+                {submitState.message}
+              </p>
+            )}
           </form>
         </div>
       </div>
